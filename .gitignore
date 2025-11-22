@@ -1,7 +1,6 @@
 .qodo
 
-# Ignore server directory
-/server/
+
 
 # Node modules
 node_modules/
