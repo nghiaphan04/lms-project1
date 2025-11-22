@@ -2,6 +2,7 @@ import Address from "../models/Address.js";
 import Course from "../models/Course.js";
 import Notification from "../models/Notification.js";
 
+// Kiểm tra xem học viên đã gửi yêu cầu chứng chỉ cho khóa học cụ thể chưa
 export const checkAddress = async (req, res) => {
     try {
         const { courseId, userId } = req.query;
@@ -29,6 +30,7 @@ export const checkAddress = async (req, res) => {
     }
 };
 
+// Tìm địa chỉ theo courseId và educatorId
 export const findAddress = async (req, res) => {
     try {
         const { courseId, educatorId } = req.query;
@@ -59,8 +61,10 @@ export const findAddress = async (req, res) => {
 
 export const saveAddress = async (req, res) => {
     try {
-
+        console.log('Debug - saveAddress request body:', req.body);
+        console.log('Debug - saveAddress auth:', req.auth);
         
+        // Lấy userId từ req.auth (middleware Clerk)
         const userId = req.auth?.userId;
         
         if (!userId) {
@@ -81,6 +85,7 @@ export const saveAddress = async (req, res) => {
             });
         }
 
+        // Get course to get educator ID and wallet
         const course = await Course.findById(courseId);
         if (!course) {
             return res.json({ success: false, message: 'Course not found' });
@@ -93,7 +98,14 @@ export const saveAddress = async (req, res) => {
             });
         }
         
+        console.log('Debug - Found course:', { 
+            id: course._id, 
+            title: course.courseTitle,
+            educator: course.educator,
+            creatorAddress: course.creatorAddress
+        });
 
+        // Save address with educator info and txHash
         const addressData = {
             userId,
             userName,
@@ -101,12 +113,15 @@ export const saveAddress = async (req, res) => {
             courseId,
             educatorId: course.educator,
             educatorWallet: course.creatorAddress,
-            txHash: txHash || '' 
+            txHash: txHash || '' // Lưu txHash vào cơ sở dữ liệu
         };
         
+        console.log('Debug - Creating address with data:', addressData);
         
         const address = await Address.create(addressData);
+        console.log('Debug - Created address:', address);
 
+        // Create notification for educator
         const notificationData = {
             studentId: userId,
             studentModel: userId.startsWith('user_') ? 'ClerkUser' : 'User',
@@ -118,12 +133,14 @@ export const saveAddress = async (req, res) => {
             data: {
                 walletAddress,
                 courseTitle: course.courseTitle,
-                txHash: txHash || '' 
+                txHash: txHash || '' // Thêm txHash vào thông báo
             }
         };
         
+        console.log('Debug - Creating notification with data:', notificationData);
         
         const notification = await Notification.create(notificationData);
+        console.log('Debug - Created notification:', notification);
 
         res.json({ 
             success: true, 

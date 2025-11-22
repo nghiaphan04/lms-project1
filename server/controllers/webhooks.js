@@ -13,16 +13,20 @@ export const clerkWebhooks = async (req, res) => {
             "svix-signature": req.headers["svix-signature"],
         };
 
+        console.log(process.env.CLERK_WEBHOOK_SECRET);
         const whook = new Webhook(process.env.CLERK_WEBHOOK_SECRET);
 
         try {
+            console.log("Webhook verified successfully");
             whook.verify(JSON.stringify(req.body), svixHeaders);
+            console.log("Webhook verified successfully");
         } catch (err) {
             console.error("Webhook verification failed:", err);
             return res.status(401).json({ success: false, message: "Unauthorized" });
         }
 
         const { data, type } = req.body;
+        console.log("Received Clerk webhook:", type, data);
 
         if (!data?.id || !data?.email_addresses?.[0]?.email_address) {
             return res.status(400).json({ success: false, message: "Invalid payload" });
